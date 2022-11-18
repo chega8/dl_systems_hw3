@@ -293,7 +293,16 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        _strides = []
+        for idx, shape in enumerate(new_shape):
+            if self.shape[idx] != 1:
+                assert shape == self.shape[idx]
+                _strides.append(self.strides[idx])
+            else:
+                _strides.append(0)
+        _shape = new_shape
+        _strides = tuple(_strides)
+        return self.as_strided(_shape, _strides)
         ### END YOUR SOLUTION
 
     ### Get and set elements
