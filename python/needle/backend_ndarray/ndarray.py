@@ -264,7 +264,9 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        new_strides = tuple([self._strides[i] for i in new_axes])
+        new_shape = tuple([self._shape[i] for i in new_axes])
+        return self.as_strided(new_shape, new_strides)
         ### END YOUR SOLUTION
 
     def broadcast_to(self, new_shape):
