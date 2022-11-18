@@ -241,7 +241,13 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        new_strides = []
+        for i, dim in enumerate(new_shape[:-1]):
+            stride = np.prod(new_shape[i+1:])
+            new_strides.append(stride)
+        new_strides.append(1)
+        new_strides = tuple(new_strides)
+        return self.as_strided(new_shape, new_strides)
         ### END YOUR SOLUTION
 
     def permute(self, new_axes):
