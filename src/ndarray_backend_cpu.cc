@@ -63,7 +63,41 @@ void Compact(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t> sha
    *  function will implement here, so we won't repeat this note.)
    */
   /// BEGIN YOUR SOLUTION
-  
+  uint32_t dim = shape.size();
+  uint32_t cnt = 0;
+  for (int i = 0; i < shape[0]; ++i) {
+    if (dim == 1) {
+      out->ptr[cnt++] = a.ptr[offset + i * strides[0]];
+    } else {
+      for (int j = 0; j < shape[1]; ++j) {
+        if (dim == 2) {
+          out->ptr[cnt++] = a.ptr[offset + i * strides[0] + j * strides[1]];
+        } else {
+          for (int k = 0; k < shape[2]; ++k) {
+            if (dim == 3) {
+              out->ptr[cnt++] = a.ptr[offset + i * strides[0] + j * strides[1] + k * strides[2]];
+            } else {
+              for (int l = 0; l < shape[3]; ++l) {
+                if (dim == 4) {
+                  out->ptr[cnt++] = a.ptr[offset + i * strides[0] + j * strides[1] + k * strides[2] + l * strides[3]];
+                } else {
+                  for (int m = 0; m < shape[4]; ++m) {
+                    if (dim == 5) {
+                      out->ptr[cnt++] = a.ptr[offset + i * strides[0] + j * strides[1] + k * strides[2] + l * strides[3] + m * strides[4]];
+                    } else {
+                      for (int n = 0; n < shape[5]; ++n) {
+                        out->ptr[cnt++] = a.ptr[offset + i * strides[0] + j * strides[1] + k * strides[2] + l * strides[3] + m * strides[4] + n * strides[5]];
+                      }
+                    } // dim6
+                  }
+                } // dim5+
+              }
+            } // dim4+
+          }
+        } // dim3+
+      }
+    } // dim2+
+  }
   /// END YOUR SOLUTION
 }
 
@@ -80,7 +114,41 @@ void EwiseSetitem(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t
    *   offset: offset of the *out* array (not a, which has zero offset, being compact)
    */
   /// BEGIN YOUR SOLUTION
-  
+  uint32_t cnt = 0;
+  int dim = shape.size();
+  for (int i = 0; i < shape[0]; ++i) {
+    if (dim == 1) {
+      out->ptr[offset + i * strides[0]] = a.ptr[cnt++];
+    } else {
+      for (int j = 0; j < shape[1]; ++j) {
+        if (dim == 2) {
+          out->ptr[offset + i * strides[0] + j * strides[1]] = a.ptr[cnt++];
+        } else {
+          for (int k = 0; k < shape[2]; ++k) {
+            if (dim == 3) {
+              out->ptr[offset + i * strides[0] + j * strides[1] + k * strides[2]] = a.ptr[cnt++];
+            } else {
+              for (int l = 0; l < shape[3]; ++l) {
+                if (dim == 4) {
+                  out->ptr[offset + i * strides[0] + j * strides[1] + k * strides[2] + l * strides[3]] = a.ptr[cnt++];
+                } else {
+                  for (int m = 0; m < shape[4]; ++m) {
+                    if (dim == 5) {
+                      out->ptr[offset + i * strides[0] + j * strides[1] + k * strides[2] + l * strides[3] + m * strides[4]] = a.ptr[cnt++];
+                    } else {
+                      for (int n = 0; n < shape[5]; ++n) {
+                        out->ptr[offset + i * strides[0] + j * strides[1] + k * strides[2] + l * strides[3] + m * strides[4] + n * strides[5]] = a.ptr[cnt++];
+                      }
+                    } // dim6
+                  }
+                } // dim5+
+              }
+            } // dim4+
+          }
+        } // dim3+
+      }
+    } // dim2+
+  }
   /// END YOUR SOLUTION
 }
 
@@ -101,7 +169,41 @@ void ScalarSetitem(const size_t size, scalar_t val, AlignedArray* out, std::vect
    */
 
   /// BEGIN YOUR SOLUTION
-  
+  uint32_t cnt = 0;
+  int dim = shape.size();
+  for (int i = 0; i < shape[0]; ++i) {
+    if (dim == 1) {
+      out->ptr[offset + i * strides[0]] = val;
+    } else {
+      for (int j = 0; j < shape[1]; ++j) {
+        if (dim == 2) {
+          out->ptr[offset + i * strides[0] + j * strides[1]] = val;
+        } else {
+          for (int k = 0; k < shape[2]; ++k) {
+            if (dim == 3) {
+              out->ptr[offset + i * strides[0] + j * strides[1] + k * strides[2]] = val;
+            } else {
+              for (int l = 0; l < shape[3]; ++l) {
+                if (dim == 4) {
+                  out->ptr[offset + i * strides[0] + j * strides[1] + k * strides[2] + l * strides[3]] = val;
+                } else {
+                  for (int m = 0; m < shape[4]; ++m) {
+                    if (dim == 5) {
+                      out->ptr[offset + i * strides[0] + j * strides[1] + k * strides[2] + l * strides[3] + m * strides[4]] = val;
+                    } else {
+                      for (int n = 0; n < shape[5]; ++n) {
+                        out->ptr[offset + i * strides[0] + j * strides[1] + k * strides[2] + l * strides[3] + m * strides[4] + n * strides[5]] = val;
+                      }
+                    } // dim6
+                  }
+                } // dim5+
+              }
+            } // dim4+
+          }
+        } // dim3+
+      }
+    } // dim2+
+  }
   /// END YOUR SOLUTION
 }
 
