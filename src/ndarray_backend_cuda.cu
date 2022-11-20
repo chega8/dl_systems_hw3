@@ -13,6 +13,8 @@ namespace cuda {
 
 #define TILE 4
 typedef float scalar_t;
+using scalarfn = scalar_t (*)(scalar_t);
+using ewisefn = scalar_t (*)(scalar_t, scalar_t);
 const size_t ELEM_SIZE = sizeof(scalar_t);
 
 struct CudaArray {
@@ -256,6 +258,149 @@ void ScalarAdd(const CudaArray& a, scalar_t val, CudaArray* out) {
  */
 
 /// BEGIN YOUR SOLUTION
+__device__ __forceinline__ scalar_t multiple(scalar_t a, scalar_t b) {
+    return a * b;
+}
+__device__ __forceinline__ scalar_t divide(scalar_t a, scalar_t b) {
+    return a / b;
+}
+__device__ __forceinline__ scalar_t eq(scalar_t a, scalar_t b) {
+    return a == b;
+}
+__device__ __forceinline__ scalar_t ge(scalar_t a, scalar_t b) {
+    return a >= b;
+}
+__device__ __forceinline__ scalar_t max(scalar_t a, scalar_t b) {
+    return fmax(a, b);
+}
+__device__ ewisefn d_mul = multiple;
+__device__ ewisefn d_div = divide;
+__device__ ewisefn d_eq = eq;
+__device__ ewisefn d_ge = ge;
+__device__ ewisefn d_max = fmax;
+__device__ ewisefn d_pow = powf;
+__device__ scalarfn d_exp = expf;
+__device__ scalarfn d_tanh = tanhf;
+__device__ scalarfn d_log = logf;
+
+__global__ void EwiseOP(const scalar_t *a, scalar_t *out, size_t size,
+                        scalarfn op) {
+    size_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+    if (gid < size) {
+
+        out[gid] = (*op)(a[gid]);
+    }
+}
+
+__global__ void EwiseOP(const scalar_t *a, const scalar_t *b, scalar_t *out,
+                        size_t size, ewisefn op) {
+    size_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+    if (gid < size) {
+        out[gid] = (*op)(a[gid], b[gid]);
+    }
+}
+
+__global__ void ScalarOp(const scalar_t *a, scalar_t val, scalar_t *out,
+                         size_t size, ewisefn op) {
+    size_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+    if (gid < size) {
+
+        out[gid] = (*op)(a[gid], val);
+    }
+}
+
+void EwiseMul(const CudaArray &a, const CudaArray &b, CudaArray *out) {
+    auto dim = CudaOneDim(out->size);
+    ewisefn mul;
+    cudaMemcpyFromSymbol(&mul, d_mul, sizeof(ewisefn));
+    EwiseOP<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, out->size, mul);
+}
+
+void ScalarMul(const CudaArray &a, scalar_t val, CudaArray *out) {
+    auto dim = CudaOneDim(out->size);
+    ewisefn mul;
+    cudaMemcpyFromSymbol(&mul, d_mul, sizeof(ewisefn));
+    ScalarOp<<<dim.grid, dim.block>>>(a.ptr, val, out->ptr, out->size, mul);
+}
+void EwiseDiv(const CudaArray &a, const CudaArray &b, CudaArray *out) {
+    auto dim = CudaOneDim(out->size);
+    ewisefn div;
+    cudaMemcpyFromSymbol(&div, d_div, sizeof(ewisefn));
+    EwiseOP<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, out->size, div);
+}
+void ScalarDiv(const CudaArray &a, scalar_t val, CudaArray *out) {
+    auto dim = CudaOneDim(out->size);
+    ewisefn div;
+    cudaMemcpyFromSymbol(&div, d_div, sizeof(ewisefn));
+    ScalarOp<<<dim.grid, dim.block>>>(a.ptr, val, out->ptr, out->size, div);
+}
+
+void ScalarPower(const CudaArray &a, scalar_t val, CudaArray *out) {
+    auto dim = CudaOneDim(out->size);
+    ewisefn pow;
+    cudaMemcpyFromSymbol(&pow, d_pow, sizeof(ewisefn));
+    ScalarOp<<<dim.grid, dim.block>>>(a.ptr, val, out->ptr, out->size, pow);
+}
+
+void EwiseMaximum(const CudaArray &a, const CudaArray &b, CudaArray *out) {
+    auto dim = CudaOneDim(out->size);
+    ewisefn maximum;
+    cudaMemcpyFromSymbol(&maximum, d_max, sizeof(ewisefn));
+    EwiseOP<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, out->size,
+                                     maximum);
+}
+
+void ScalarMaximum(const CudaArray &a, scalar_t val, CudaArray *out) {
+    auto dim = CudaOneDim(out->size);
+    ewisefn maximum;
+    cudaMemcpyFromSymbol(&maximum, d_max, sizeof(ewisefn));
+    ScalarOp<<<dim.grid, dim.block>>>(a.ptr, val, out->ptr, out->size, maximum);
+}
+
+void EwiseEq(const CudaArray &a, const CudaArray &b, CudaArray *out) {
+    auto dim = CudaOneDim(out->size);
+    ewisefn eq;
+    cudaMemcpyFromSymbol(&eq, d_eq, sizeof(ewisefn));
+    EwiseOP<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, out->size, eq);
+}
+void ScalarEq(const CudaArray &a, scalar_t val, CudaArray *out) {
+    auto dim = CudaOneDim(out->size);
+    ewisefn eq;
+    cudaMemcpyFromSymbol(&eq, d_eq, sizeof(ewisefn));
+    ScalarOp<<<dim.grid, dim.block>>>(a.ptr, val, out->ptr, out->size, eq);
+}
+
+void EwiseGe(const CudaArray &a, const CudaArray &b, CudaArray *out) {
+    auto dim = CudaOneDim(out->size);
+    ewisefn ge;
+    cudaMemcpyFromSymbol(&ge, d_ge, sizeof(ewisefn));
+    EwiseOP<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, out->size, ge);
+}
+void ScalarGe(const CudaArray &a, scalar_t val, CudaArray *out) {
+    auto dim = CudaOneDim(out->size);
+    ewisefn ge;
+    cudaMemcpyFromSymbol(&ge, d_ge, sizeof(ewisefn));
+    ScalarOp<<<dim.grid, dim.block>>>(a.ptr, val, out->ptr, out->size, ge);
+}
+
+void EwiseLog(const CudaArray &a, CudaArray *out) {
+    auto dim = CudaOneDim(out->size);
+    scalarfn log;
+    cudaMemcpyFromSymbol(&log, d_log, sizeof(scalarfn));
+    EwiseOP<<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size, log);
+}
+void EwiseExp(const CudaArray &a, CudaArray *out) {
+    auto dim = CudaOneDim(out->size);
+    scalarfn exp;
+    cudaMemcpyFromSymbol(&exp, d_exp, sizeof(scalarfn));
+    EwiseOP<<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size, exp);
+}
+void EwiseTanh(const CudaArray &a, CudaArray *out) {
+    auto dim = CudaOneDim(out->size);
+    scalarfn tanh;
+    cudaMemcpyFromSymbol(&tanh, d_tanh, sizeof(scalarfn));
+    EwiseOP<<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size, tanh);
+}
 
 /// END YOUR SOLUTION
 
@@ -299,39 +444,66 @@ void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, 
 ////////////////////////////////////////////////////////////////////////////////
 
 
+__global__ void ReduceMaxKernel(const scalar_t *a, scalar_t *out,
+                                size_t reduce_size, size_t len) {
+    size_t gid = threadIdx.x + blockDim.x * blockIdx.x;
+    if (gid >= len) {
+        return;
+    }
+    scalar_t maxValue = a[gid * reduce_size];
+    for (size_t i = gid * reduce_size; i < (gid + 1) * reduce_size; i++) {
+        maxValue = max(maxValue, a[i]);
+    }
 
-void ReduceMax(const CudaArray& a, CudaArray* out, size_t reduce_size) {
-  /**
-   * Reduce by taking maximum over `reduce_size` contiguous blocks.  Even though it is inefficient,
-   * for simplicity you can perform each reduction in a single CUDA thread.
-   * 
-   * Args:
-   *   a: compact array of size a.size = out.size * reduce_size to reduce over
-   *   out: compact array to write into
-   *   redice_size: size of the dimension to reduce over
-   */
-  /// BEGIN YOUR SOLUTION
-  
-  /// END YOUR SOLUTION
+    out[gid] = maxValue;
+}
+void ReduceMax(const CudaArray &a, CudaArray *out, size_t reduce_size) {
+    /**
+     * Reduce by taking maximum over `reduce_size` contiguous blocks.  Even
+     * though it is inefficient, for simplicity you can perform each
+     * reduction in a single CUDA thread.
+     *
+     * Args:
+     *   a: compact array of size a.size = out.size * reduce_size to reduce
+     * over out: compact array to write into redice_size: size of the
+     * dimension to reduce over
+     */
+    /// BEGIN YOUR SOLUTION
+    auto dim = CudaOneDim(out->size);
+    ReduceMaxKernel<<<dim.grid, dim.block>>>(a.ptr, out->ptr, reduce_size,
+                                             out->size);
+    /// END YOUR SOLUTION
+}
+__global__ void ReduceSumKernel(const scalar_t *a, scalar_t *out,
+                                size_t reduce_size, size_t len) {
+    size_t gid = threadIdx.x + blockDim.x * blockIdx.x;
+    scalar_t sum = 0.0f;
+    if (gid >= len) {
+        return;
+    }
+    for (size_t i = gid * reduce_size; i < (gid + 1) * reduce_size; i++) {
+        sum += a[i];
+    }
+    out[gid] = sum;
+}
+void ReduceSum(const CudaArray &a, CudaArray *out, size_t reduce_size) {
+    /**
+     * Reduce by taking summation over `reduce_size` contiguous blocks.
+     * Again, for simplicity you can perform each reduction in a single CUDA
+     * thread.
+     *
+     * Args:
+     *   a: compact array of size a.size = out.size * reduce_size to reduce
+     * over out: compact array to write into redice_size: size of the
+     * dimension to reduce over
+     */
+    /// BEGIN YOUR SOLUTION
+    auto dim = CudaOneDim(out->size);
+    ReduceSumKernel<<<dim.grid, dim.block>>>(a.ptr, out->ptr, reduce_size,
+                                             out->size);
+    /// END YOUR SOLUTION
 }
 
-
-
-
-void ReduceSum(const CudaArray& a, CudaArray* out, size_t reduce_size) {
-  /**
-   * Reduce by taking summation over `reduce_size` contiguous blocks.  Again, for simplicity you 
-   * can perform each reduction in a single CUDA thread.
-   * 
-   * Args:
-   *   a: compact array of size a.size = out.size * reduce_size to reduce over
-   *   out: compact array to write into
-   *   redice_size: size of the dimension to reduce over
-   */
-  /// BEGIN YOUR SOLUTION
-  
-  /// END YOUR SOLUTION
-}
 
 }  // namespace cuda
 }  // namespace needle
@@ -381,22 +553,22 @@ PYBIND11_MODULE(ndarray_backend_cuda, m) {
   m.def("ewise_add", EwiseAdd);
   m.def("scalar_add", ScalarAdd);
 
-  // m.def("ewise_mul", EwiseMul);
-  // m.def("scalar_mul", ScalarMul);
-  // m.def("ewise_div", EwiseDiv);
-  // m.def("scalar_div", ScalarDiv);
-  // m.def("scalar_power", ScalarPower);
+  m.def("ewise_mul", EwiseMul);
+  m.def("scalar_mul", ScalarMul);
+  m.def("ewise_div", EwiseDiv);
+  m.def("scalar_div", ScalarDiv);
+  m.def("scalar_power", ScalarPower);
 
-  // m.def("ewise_maximum", EwiseMaximum);
-  // m.def("scalar_maximum", ScalarMaximum);
-  // m.def("ewise_eq", EwiseEq);
-  // m.def("scalar_eq", ScalarEq);
-  // m.def("ewise_ge", EwiseGe);
-  // m.def("scalar_ge", ScalarGe);
+  m.def("ewise_maximum", EwiseMaximum);
+  m.def("scalar_maximum", ScalarMaximum);
+  m.def("ewise_eq", EwiseEq);
+  m.def("scalar_eq", ScalarEq);
+  m.def("ewise_ge", EwiseGe);
+  m.def("scalar_ge", ScalarGe);
 
-  // m.def("ewise_log", EwiseLog);
-  // m.def("ewise_exp", EwiseExp);
-  // m.def("ewise_tanh", EwiseTanh);
+  m.def("ewise_log", EwiseLog);
+  m.def("ewise_exp", EwiseExp);
+  m.def("ewise_tanh", EwiseTanh);
 
   m.def("matmul", Matmul);
 
