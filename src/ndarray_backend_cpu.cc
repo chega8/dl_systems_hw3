@@ -11,6 +11,7 @@ namespace cpu {
 
 #define ALIGNMENT 256
 #define TILE 8
+#define TILE_2 TILE *TILE
 typedef float scalar_t;
 const size_t ELEM_SIZE = sizeof(scalar_t);
 
@@ -390,7 +391,15 @@ void Matmul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, uin
    */
 
   /// BEGIN YOUR SOLUTION
-  
+  for (size_t i = 0; i < m; ++i) {
+    for (size_t j = 0; j < p; ++j) {
+      scalar_t val = 0.0;
+      for (size_t k = 0; k < n; ++k) {
+        val += (a.ptr[n * i + k] * b.ptr[k * p + j]);
+      }
+      out->ptr[i * p + j] = val;
+    }
+  }
   /// END YOUR SOLUTION
 }
 
@@ -420,7 +429,13 @@ inline void AlignedDot(const float* __restrict__ a,
   out = (float*)__builtin_assume_aligned(out, TILE * ELEM_SIZE);
 
   /// BEGIN YOUR SOLUTION
-  
+  for (int i = 0; i < TILE; i++) {
+        for (int k = 0; k < TILE; k++) {
+            for (int j = 0; j < TILE; j++) {
+                out[i * TILE + j] += a[i * TILE + k] * b[k * TILE + j];
+            }
+        }
+    }
   /// END YOUR SOLUTION
 }
 
@@ -446,7 +461,18 @@ void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out
    *
    */
   /// BEGIN YOUR SOLUTION
-  
+  int m_tile = m / TILE, n_tile = n / TILE, p_tile = p / TILE;
+    std::fill(out->ptr, out->ptr + out->size, 0.0f);
+    for (int i = 0; i < m_tile; i++) {
+        for (int j = 0; j < p_tile; j++) {
+            for (int k = 0; k < n_tile; k++) {
+                scalar_t *tile_a = a.ptr + TILE_2 * k + TILE_2 * i * n_tile;
+                scalar_t *tile_b = b.ptr + TILE_2 * j + TILE_2 * k * p_tile;
+                scalar_t *tile_c = out->ptr + TILE_2 * j + TILE_2 * i * p_tile;
+                AlignedDot(tile_a, tile_b, tile_c);
+            }
+        }
+    }
   /// END YOUR SOLUTION
 }
 
