@@ -44,35 +44,7 @@ void Fill(AlignedArray* out, scalar_t val) {
   }
 }
 
-void Compact_v2(const AlignedArray &a, AlignedArray *out,
-             std::vector<uint32_t> shape, std::vector<uint32_t> strides,
-             size_t offset) {
-    /// BEGIN YOUR SOLUTION
-    int ndim = shape.size();
-    std::vector<uint32_t> idxs(ndim, 0);
-    long long cnt = 0, i = 0;
-    long long dim =
-        std::accumulate(shape.begin(), shape.end(), 1LL, std::multiplies<>());
-    while (cnt < dim) {
-        i = 0;
-        for (int n = 0; n < ndim; n++) {
-            i += strides[n] * idxs[n];
-        }
-        out->ptr[cnt++] = a.ptr[offset + i];
-        idxs[ndim - 1]++;
-        int carry = 0;
-        for (int n = ndim - 1; n >= 0; n--) {
-            int sum = idxs[n] + carry;
-            carry = sum / shape[n];
-            idxs[n] = sum % shape[n];
-            if (carry == 0) {
-                break;
-            }
-        }
-    }
-    return;
-    /// END YOUR SOLUTION
-}
+
 
 
 void Compact(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t> shape,
